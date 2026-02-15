@@ -47,7 +47,7 @@ If using Wayland, switch to X11:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/dynavlight.git
+git clone https://github.com/Sydthewhistler/dynavlight.git
 cd dynavlight
 
 # Make installer executable
@@ -295,7 +295,7 @@ MIT License - See LICENSE file
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/your-username/dynavlight/issues)
+- Issues: [GitHub Issues](https://github.com/Sydthewhistler/dynavlight/issues)
 
 ---
 
