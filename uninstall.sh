@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Désinstallation de l'extension
+# Dynavlight - Uninstall Script
 
 set -e
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 print_info() {
@@ -16,27 +17,29 @@ print_warning() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
-echo -e "${YELLOW}"
+echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║      Désinstallation Extension Luminosité                     ║"
+echo "║                                                               ║"
+echo "║              Uninstalling Dynavlight                          ║"
+echo "║                                                               ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 echo ""
 
-# Demander confirmation
-read -p "Désinstaller l'extension ? (o/N) " -n 1 -r
+# Ask for confirmation
+read -p "Uninstall Dynavlight? (o/N) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[OoYy]$ ]]; then
-    print_info "Annulé"
+    print_info "Cancelled"
     exit 0
 fi
 
-# Désactiver
-print_info "Désactivation..."
-gnome-extensions disable software-brightness@custom-extension 2>/dev/null || true
+# Disable
+print_info "Disabling Dynavlight..."
+gnome-extensions disable dynavlight@custom-extension 2>/dev/null || true
 
-# Restaurer luminosité
-print_info "Restauration luminosité à 100%..."
+# Restore brightness
+print_info "Restoring brightness to 100%..."
 if command -v xrandr &> /dev/null; then
     DISPLAY_OUTPUT=$(xrandr | grep " connected" | head -n1 | cut -d" " -f1)
     if [ -n "$DISPLAY_OUTPUT" ]; then
@@ -44,22 +47,29 @@ if command -v xrandr &> /dev/null; then
     fi
 fi
 
-# Supprimer
-EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/software-brightness@custom-extension"
+# Remove the extension
+EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/dynavlight@custom-extension"
 if [ -d "$EXTENSION_DIR" ]; then
     rm -rf "$EXTENSION_DIR"
-    print_info "Extension supprimée ✓"
+    print_info "Dynavlight removed ✓"
 fi
 
 # Config
-read -p "Supprimer la configuration ? (o/N) " -n 1 -r
+read -p "Remove Dynavlight configuration? (o/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[OoYy]$ ]]; then
-    rm -rf "$HOME/.config/brightness-control"
-    print_info "Configuration supprimée ✓"
+    rm -rf "$HOME/.config/dynavlight"
+    print_info "Configuration removed ✓"
 fi
 
 echo ""
-print_info "Désinstallation terminée!"
-print_warning "Redémarrez GNOME Shell (Alt+F2, puis 'r')"
+echo -e "${GREEN}"
+echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║                                                               ║"
+echo "║           Dynavlight uninstalled successfully! ✓              ║"
+echo "║                                                               ║"
+echo "╚═══════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+echo ""
+print_warning "Restart GNOME Shell: killall -3 gnome-shell"
 echo ""

@@ -1,0 +1,292 @@
+#!/bin/bash
+
+# Dynavlight - Dynamic Virtual Light
+# Script de contrôle CLI pour l'extension GNOME
+
+set -e
+
+# Couleurs
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# UUID de l'extension
+UUID="dynavlight@custom-extension"
+CONFIG_DIR="$HOME/.config/dynavlight"
+CONFIG_FILE="$CONFIG_DIR/current_level"
+
+# Fonctions d'affichage
+print_header() {
+    echo -e "${CYAN}"
+    echo "╔═══════════════════════════════════════════════════════════════╗"
+    echo "║                     🌟 DYNAVLIGHT 🌟                         ║"
+    echo "║              Dynamic Virtual Light Control                    ║"
+    echo "╚═══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}[✓]${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}[ℹ]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[✗]${NC} $1"
+}
+
+# Vérifier si l'extension est installée
+check_installed() {
+    if gnome-extensions list 2>/dev/null | grep -q "$UUID"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Vérifier si l'extension est activée
+check_enabled() {
+    if gnome-extensions list --enabled 2>/dev/null | grep -q "$UUID"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Obtenir le niveau actuel
+get_current_level() {
+    if [ -f "$CONFIG_FILE" ]; then
+        cat "$CONFIG_FILE"
+    else
+        echo "0.8"
+    fi
+}
+
+# Commande: enable
+cmd_enable() {
+    echo -e "${GREEN}═══ Activation de Dynavlight ═══${NC}"
+    echo ""
+    
+    if ! check_installed; then
+        print_error "Dynavlight n'est pas installé"
+        print_info "Installez-le avec: sudo ./install.sh"
+        exit 1
+    fi
+    
+    if check_enabled; then
+        print_warning "Dynavlight est déjà activé"
+    else
+        gnome-extensions enable "$UUID" 2>/dev/null
+        print_success "Dynavlight activé"
+    fi
+    
+    echo ""
+    print_warning "Redémarrez GNOME Shell pour appliquer:"
+    echo "  ${CYAN}killall -3 gnome-shell${NC}"
+    echo "  ${CYAN}gnome-shell --replace & disown${NC}"
+}
+
+# Commande: disable
+cmd_disable() {
+    echo -e "${YELLOW}═══ Désactivation de Dynavlight ═══${NC}"
+    echo ""
+    
+    if ! check_installed; then
+        print_error "Dynavlight n'est pas installé"
+        exit 1
+    fi
+    
+    if ! check_enabled; then
+        print_warning "Dynavlight est déjà désactivé"
+    else
+        gnome-extensions disable "$UUID" 2>/dev/null
+        print_success "Dynavlight désactivé"
+    fi
+    
+    echo ""
+    print_warning "Redémarrez GNOME Shell pour appliquer:"
+    echo "  ${CYAN}killall -3 gnome-shell${NC}"
+}
+
+# Commande: status
+cmd_status() {
+    print_header
+    echo ""
+    
+    # Installation
+    if check_installed; then
+        print_success "Installé"
+        EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"
+        print_info "Emplacement: $EXTENSION_DIR"
+    else
+        print_error "Non installé"
+        echo ""
+        print_info "Pour installer: sudo ./install.sh"
+        exit 0
+    fi
+    
+    echo ""
+    
+    # État d'activation
+    if check_enabled; then
+        print_success "Activé"
+    else
+        print_warning "Désactivé"
+        echo ""
+        print_info "Pour activer: dynavlight enable"
+    fi
+    
+    echo ""
+    
+    # Configuration
+    echo -e "${BLUE}═══ Configuration ═══${NC}"
+    if [ -d "$CONFIG_DIR" ]; then
+        print_info "Dossier: $CONFIG_DIR"
+        
+        if [ -f "$CONFIG_FILE" ]; then
+            LEVEL=$(get_current_level)
+            PERCENT=$(echo "scale=0; $LEVEL * 100 / 1" | bc 2>/dev/null || echo "80")
+            print_info "Niveau sauvegardé: ${PERCENT}%"
+        else
+            print_warning "Aucun niveau sauvegardé (défaut: 80%)"
+        fi
+    else
+        print_warning "Dossier de configuration non trouvé"
+    fi
+    
+    echo ""
+    
+    # Écran détecté
+    echo -e "${BLUE}═══ Écran ═══${NC}"
+    if command -v xrandr &> /dev/null; then
+        DISPLAY_OUTPUT=$(xrandr | grep " connected" | head -n1 | cut -d" " -f1)
+        if [ -n "$DISPLAY_OUTPUT" ]; then
+            print_info "Écran détecté: $DISPLAY_OUTPUT"
+        else
+            print_warning "Aucun écran détecté"
+        fi
+    else
+        print_warning "xrandr non installé"
+    fi
+    
+    echo ""
+    
+    # Session
+    echo -e "${BLUE}═══ Session ═══${NC}"
+    if [ -n "$XDG_SESSION_TYPE" ]; then
+        if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+            print_success "X11 (compatible)"
+        else
+            print_warning "Wayland (xrandr ne fonctionnera pas)"
+            print_info "Passez à 'GNOME sur Xorg' à la connexion"
+        fi
+    fi
+    
+    echo ""
+}
+
+# Commande: restart
+cmd_restart() {
+    echo -e "${CYAN}═══ Redémarrage de GNOME Shell ═══${NC}"
+    echo ""
+    
+    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
+        print_warning "Sous Wayland, GNOME Shell ne peut pas être redémarré"
+        print_info "Déconnectez-vous et reconnectez-vous"
+        exit 1
+    fi
+    
+    print_info "Redémarrage de GNOME Shell..."
+    killall -3 gnome-shell 2>/dev/null || gnome-shell --replace & disown
+    print_success "GNOME Shell redémarré"
+}
+
+# Commande: logs
+cmd_logs() {
+    echo -e "${CYAN}═══ Logs Dynavlight (Ctrl+C pour arrêter) ═══${NC}"
+    echo ""
+    
+    if command -v journalctl &> /dev/null; then
+        journalctl -f /usr/bin/gnome-shell 2>/dev/null | grep --line-buffered -i "dynavlight"
+    else
+        print_error "journalctl non disponible"
+        exit 1
+    fi
+}
+
+# Commande: version
+cmd_version() {
+    echo -e "${CYAN}Dynavlight${NC} - Dynamic Virtual Light"
+    echo "Version: 2.0"
+    echo "UUID: $UUID"
+    echo ""
+    echo "Compatible GNOME Shell 3.36 - 46+"
+}
+
+# Commande: help
+cmd_help() {
+    print_header
+    echo ""
+    echo "Usage: ${CYAN}dynavlight${NC} ${YELLOW}[commande]${NC}"
+    echo ""
+    echo -e "${BLUE}Commandes principales:${NC}"
+    echo "  ${CYAN}enable${NC}       Activer Dynavlight"
+    echo "  ${CYAN}disable${NC}      Désactiver Dynavlight"
+    echo "  ${CYAN}status${NC}       Afficher le statut complet"
+    echo "  ${CYAN}restart${NC}      Redémarrer GNOME Shell"
+    echo ""
+    echo -e "${BLUE}Commandes d'information:${NC}"
+    echo "  ${CYAN}logs${NC}         Voir les logs en temps réel"
+    echo "  ${CYAN}version${NC}      Afficher la version"
+    echo "  ${CYAN}help${NC}         Afficher cette aide"
+    echo ""
+    echo -e "${BLUE}Exemples:${NC}"
+    echo "  ${YELLOW}dynavlight enable${NC}        # Activer l'extension"
+    echo "  ${YELLOW}dynavlight status${NC}        # Voir le statut détaillé"
+    echo "  ${YELLOW}dynavlight restart${NC}       # Redémarrer GNOME Shell"
+    echo ""
+    echo -e "${BLUE}Fichiers:${NC}"
+    echo "  Configuration: ${CYAN}~/.config/dynavlight/current_level${NC}"
+    echo "  Extension:     ${CYAN}~/.local/share/gnome-shell/extensions/$UUID${NC}"
+    echo ""
+}
+
+# Router les commandes
+case "${1:-help}" in
+    enable|on)
+        cmd_enable
+        ;;
+    disable|off)
+        cmd_disable
+        ;;
+    status|info)
+        cmd_status
+        ;;
+    restart|reload)
+        cmd_restart
+        ;;
+    logs|log)
+        cmd_logs
+        ;;
+    version|--version|-v)
+        cmd_version
+        ;;
+    help|--help|-h)
+        cmd_help
+        ;;
+    *)
+        print_error "Commande inconnue: $1"
+        echo ""
+        echo "Utilisez ${CYAN}dynavlight help${NC} pour voir les commandes disponibles"
+        exit 1
+        ;;
+esac

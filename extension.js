@@ -1,6 +1,7 @@
 /* extension.js
  *
- * Extension GNOME Shell - Contrôle Luminosité Logicielle
+ * Dynavlight - Dynamic Virtual Light
+ * GNOME Shell extension for software brightness control
  * Compatible GNOME Shell 3.36 - 46+
  */
 
@@ -10,29 +11,29 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Slider = imports.ui.slider;
 
-// Classe de l'indicateur de luminosité
-const BrightnessIndicator = GObject.registerClass(
-class BrightnessIndicator extends PanelMenu.Button {
+// Dynavlight indicator class
+const DynavlightIndicator = GObject.registerClass(
+class DynavlightIndicator extends PanelMenu.Button {
     _init() {
-        super._init(0.0, 'Brightness Control');
+        super._init(0.0, 'Dynavlight');
 
-        // Icône dans le panneau système (en haut à droite)
+    // Icon in the system panel
         this._icon = new St.Icon({
             icon_name: 'display-brightness-symbolic',
             style_class: 'system-status-icon',
         });
         this.add_child(this._icon);
 
-        // Détection de l'écran
+    // Detect display
         this._detectDisplay();
         
-        // Charger la luminosité sauvegardée
-        this._loadBrightness();
+    // Load saved brightness
+        this._loadDynavlight();
 
-        // Construire le menu
+    // Build the menu
         this._buildMenu();
         
-        log('Extension Brightness: Initialisée avec succès');
+        log('Dynavlight: Initialisé avec succès');
     }
 
     _detectDisplay() {
@@ -42,91 +43,91 @@ class BrightnessIndicator extends PanelMenu.Button {
                 let output = imports.byteArray.toString(stdout);
                 let lines = output.split('\n');
                 
-                // Chercher l'écran principal
+                // Search for the primary display
                 for (let line of lines) {
                     if (line.includes('connected primary')) {
                         this._display = line.split(' ')[0];
-                        log(`Extension Brightness: Écran principal détecté: ${this._display}`);
+                        log(`Dynavlight: Écran principal détecté: ${this._display}`);
                         return;
                     }
                 }
                 
-                // Sinon, prendre le premier connecté
+                // Otherwise, take the first connected
                 for (let line of lines) {
                     if (line.includes('connected') && !line.includes('disconnected')) {
                         this._display = line.split(' ')[0];
-                        log(`Extension Brightness: Écran détecté: ${this._display}`);
+                        log(`Dynavlight: Écran détecté: ${this._display}`);
                         return;
                     }
                 }
             }
         } catch (e) {
-            log(`Extension Brightness: Erreur détection: ${e}`);
+            log(`Dynavlight: Erreur détection: ${e}`);
         }
 
         this._display = 'Virtual-1';
-        log(`Extension Brightness: Écran par défaut: ${this._display}`);
+        log(`Dynavlight: Écran par défaut: ${this._display}`);
     }
 
-    _loadBrightness() {
+    _loadDynavlight() {
         try {
             let configDir = GLib.get_user_config_dir();
-            let brightnessFile = GLib.build_filenamev([configDir, 'brightness-control', 'current_brightness']);
+            let dynavlightFile = GLib.build_filenamev([configDir, 'dynavlight', 'current_level']);
             
-            if (GLib.file_test(brightnessFile, GLib.FileTest.EXISTS)) {
-                let [ok, contents] = GLib.file_get_contents(brightnessFile);
+            if (GLib.file_test(dynavlightFile, GLib.FileTest.EXISTS)) {
+                let [ok, contents] = GLib.file_get_contents(dynavlightFile);
                 if (ok) {
                     let contentStr = imports.byteArray.toString(contents);
-                    this._currentBrightness = parseFloat(contentStr.trim());
-                    if (this._currentBrightness < 0.1 || this._currentBrightness > 1.0) {
-                        this._currentBrightness = 0.8;
+                    this._currentLevel = parseFloat(contentStr.trim());
+                    if (this._currentLevel < 0.1 || this._currentLevel > 1.0) {
+                        this._currentLevel = 0.8;
                     }
-                    log(`Extension Brightness: Luminosité chargée: ${this._currentBrightness}`);
+                    log(`Dynavlight: Niveau chargé: ${this._currentLevel}`);
                     return;
                 }
             }
         } catch (e) {
-            log(`Extension Brightness: Erreur chargement: ${e}`);
+            log(`Dynavlight: Erreur chargement: ${e}`);
         }
         
-        this._currentBrightness = 0.8;
+        this._currentLevel = 0.8;
     }
 
-    _saveBrightness(value) {
+    _saveDynavlight(value) {
         try {
             let configDir = GLib.get_user_config_dir();
-            let brightnessDir = GLib.build_filenamev([configDir, 'brightness-control']);
+            let dynavlightDir = GLib.build_filenamev([configDir, 'dynavlight']);
             
-            GLib.mkdir_with_parents(brightnessDir, 0o755);
+            GLib.mkdir_with_parents(dynavlightDir, 0o755);
             
-            let brightnessFile = GLib.build_filenamev([brightnessDir, 'current_brightness']);
-            GLib.file_set_contents(brightnessFile, value.toString());
+            let dynavlightFile = GLib.build_filenamev([dynavlightDir, 'current_level']);
+            GLib.file_set_contents(dynavlightFile, value.toString());
         } catch (e) {
-            log(`Extension Brightness: Erreur sauvegarde: ${e}`);
+            log(`Dynavlight: Erreur sauvegarde: ${e}`);
         }
     }
 
     _buildMenu() {
-        // Titre du menu
-        let titleItem = new PopupMenu.PopupMenuItem('Luminosité', {
+    // Menu title
+        let titleItem = new PopupMenu.PopupMenuItem('Dynavlight', {
             reactive: false,
             can_focus: false
         });
         titleItem.label.set_style('font-weight: bold;');
         this.menu.addMenuItem(titleItem);
 
-        // Séparateur
+    // Separator
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        // Curseur de luminosité
+    // Brightness slider
         this._sliderItem = new PopupMenu.PopupBaseMenuItem({ activate: false });
-        this._slider = new Slider.Slider(this._currentBrightness);
+        this._slider = new Slider.Slider(this._currentLevel);
         
         this._slider.connect('notify::value', this._onSliderChanged.bind(this));
         this._sliderItem.add(this._slider);
         this.menu.addMenuItem(this._sliderItem);
 
-        // Label pour le pourcentage
+    // Label for the percentage
         this._percentageItem = new PopupMenu.PopupMenuItem('', {
             reactive: false,
             can_focus: false
@@ -134,10 +135,10 @@ class BrightnessIndicator extends PanelMenu.Button {
         this._updatePercentageLabel();
         this.menu.addMenuItem(this._percentageItem);
 
-        // Séparateur
+    // Separator
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        // Info sur l'écran
+    // Display info
         this._displayItem = new PopupMenu.PopupMenuItem(`Écran: ${this._display}`, {
             reactive: false,
             can_focus: false
@@ -145,12 +146,12 @@ class BrightnessIndicator extends PanelMenu.Button {
         this._displayItem.label.set_style('font-size: 0.9em; color: #888;');
         this.menu.addMenuItem(this._displayItem);
 
-        // Appliquer la luminosité initiale
-        this._applyBrightness(this._currentBrightness);
+    // Apply initial level
+        this._applyDynavlight(this._currentLevel);
     }
 
     _updatePercentageLabel() {
-        let percentage = Math.round(this._currentBrightness * 100);
+        let percentage = Math.round(this._currentLevel * 100);
         this._percentageItem.label.text = `${percentage}%`;
         this._percentageItem.label.set_style('font-size: 1.2em; font-weight: bold; text-align: center;');
     }
@@ -158,23 +159,23 @@ class BrightnessIndicator extends PanelMenu.Button {
     _onSliderChanged() {
         let value = this._slider.value;
         
-        // Limiter entre 10% et 100%
+    // Clamp between 10% and 100%
         if (value < 0.1) value = 0.1;
         if (value > 1.0) value = 1.0;
         
-        this._currentBrightness = value;
+        this._currentLevel = value;
         this._updatePercentageLabel();
-        this._applyBrightness(value);
-        this._saveBrightness(value);
+        this._applyDynavlight(value);
+        this._saveDynavlight(value);
     }
 
-    _applyBrightness(value) {
+    _applyDynavlight(value) {
         try {
             let cmd = `xrandr --output ${this._display} --brightness ${value}`;
             GLib.spawn_command_line_async(cmd);
-            log(`Extension Brightness: Appliqué ${value} sur ${this._display}`);
+            log(`Dynavlight: Appliqué ${value} sur ${this._display}`);
         } catch (e) {
-            log(`Extension Brightness: Erreur xrandr: ${e}`);
+            log(`Dynavlight: Erreur xrandr: ${e}`);
         }
     }
 
@@ -183,31 +184,31 @@ class BrightnessIndicator extends PanelMenu.Button {
     }
 });
 
-// Variable globale pour l'indicateur
-let brightnessIndicator;
+// Global variable for the indicator
+let dynavlightIndicator;
 
 function init() {
-    log('Extension Brightness: Initialisation');
+    log('Dynavlight: Initialisation');
 }
 
 function enable() {
-    log('Extension Brightness: Activation');
+    log('Dynavlight: Activation');
     
-    brightnessIndicator = new BrightnessIndicator();
+    dynavlightIndicator = new DynavlightIndicator();
     
-    // Ajouter au panneau système (en haut à droite)
-    Main.panel.addToStatusArea('brightness-indicator', brightnessIndicator);
+    // Add to status panel
+    Main.panel.addToStatusArea('dynavlight-indicator', dynavlightIndicator);
     
-    log('Extension Brightness: Activée avec succès');
+    log('Dynavlight: Activé avec succès');
 }
 
 function disable() {
-    log('Extension Brightness: Désactivation');
+    log('Dynavlight: Désactivation');
     
-    if (brightnessIndicator) {
-        brightnessIndicator.destroy();
-        brightnessIndicator = null;
+    if (dynavlightIndicator) {
+        dynavlightIndicator.destroy();
+        dynavlightIndicator = null;
     }
     
-    log('Extension Brightness: Désactivée');
+    log('Dynavlight: Désactivé');
 }

@@ -1,7 +1,7 @@
 {
-  "name": "Software Brightness Control",
-  "description": "Ajoute un curseur de contrôle de luminosité logicielle dans le panneau système (utilise xrandr)",
-  "uuid": "software-brightness@custom-extension",
+  "name": "Dynavlight",
+  "description": "Dynamic Virtual Light - Contrôle de luminosité logicielle pour GNOME (Dynamic Virtual Light Control)",
+  "uuid": "dynavlight@custom-extension",
   "shell-version": [
     "3.36",
     "3.38",
@@ -14,5 +14,5 @@
     "46"
   ],
   "version": 2,
-  "url": "https://github.com/votre-nom/brightness-control-extension"
+  "url": "https://github.com/Sydthewhistler/dynavlight"
 }

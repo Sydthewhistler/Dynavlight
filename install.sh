@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script d'installation pour extension GNOME
-# Compatible toutes versions GNOME Shell
+# Dynavlight - Dynamic Virtual Light
+# Installation script for GNOME Shell
 
 set -e
 
@@ -15,7 +15,9 @@ print_header() {
     echo -e "${BLUE}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
     echo "║                                                               ║"
-    echo "║    Installation Extension Luminosité Logicielle GNOME        ║"
+    echo "║                    🌟 DYNAVLIGHT 🌟                           ║"
+    echo "║              Dynamic Virtual Light Control                    ║"
+    echo "║                                                               ║"
     echo "║             Compatible GNOME Shell 3.36 - 46+                ║"
     echo "║                                                               ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
@@ -34,12 +36,12 @@ print_error() {
     echo -e "${RED}[✗]${NC} $1"
 }
 
-# Vérifier les dépendances
+# Check dependencies
 check_dependencies() {
-    print_info "Vérification des dépendances..."
+    print_info "Checking dependencies..."
     
     if ! command -v xrandr &> /dev/null; then
-        print_warning "xrandr non installé, installation..."
+        print_warning "xrandr not installed, installing..."
         
         if command -v apt-get &> /dev/null; then
             sudo apt-get update
@@ -49,113 +51,130 @@ check_dependencies() {
         elif command -v pacman &> /dev/null; then
             sudo pacman -Sy --noconfirm xorg-xrandr
         else
-            print_error "Installez manuellement: xrandr"
+            print_error "Please install manually: xrandr"
             exit 1
         fi
     fi
-    
-    print_info "Dépendances installées ✓"
+
+    print_info "Dependencies installed ✓"
 }
 
-# Détection de GNOME
+# Detect GNOME
 detect_gnome() {
-    print_info "Détection de GNOME Shell..."
+    print_info "Detecting GNOME Shell..."
     
     if command -v gnome-shell &> /dev/null; then
         VERSION=$(gnome-shell --version 2>/dev/null | grep -oP '\d+\.\d+' | head -n1)
         if [ -n "$VERSION" ]; then
             print_info "GNOME Shell version: $VERSION"
         else
-            print_warning "Version GNOME Shell non détectée, mais on continue..."
+            print_warning "GNOME Shell version not detected"
         fi
     else
-        print_warning "GNOME Shell non détecté, mais on continue..."
+        print_warning "GNOME Shell not detected"
     fi
 }
 
 # Installation
-install_extension() {
-    print_info "Installation de l'extension..."
-    
-    # Utiliser le répertoire de l'utilisateur actuel (pas root)
+install_dynavlight() {
+    print_info "Installation of Dynavlight..."
+
+    # use current user's directory
     if [ "$SUDO_USER" ]; then
         USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-        EXTENSION_DIR="$USER_HOME/.local/share/gnome-shell/extensions/software-brightness@custom-extension"
+        EXTENSION_DIR="$USER_HOME/.local/share/gnome-shell/extensions/dynavlight@custom-extension"
     else
-        EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/software-brightness@custom-extension"
+        EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/dynavlight@custom-extension"
     fi
-    
-    # Créer le répertoire
+
+    # Create the directory
     mkdir -p "$EXTENSION_DIR"
-    
-    # Copier les fichiers
+
+    # Copy files
     cp extension.js "$EXTENSION_DIR/"
     cp metadata.json "$EXTENSION_DIR/"
     cp stylesheet.css "$EXTENSION_DIR/"
-    
-    # Corriger les permissions si sudo
+
+    # Fix permissions
     if [ "$SUDO_USER" ]; then
         chown -R "$SUDO_USER:$SUDO_USER" "$EXTENSION_DIR"
     fi
-    
-    print_info "Fichiers installés dans: $EXTENSION_DIR"
-    
-    # Créer la config
+
+    print_info "Files installed in: $EXTENSION_DIR"
+
+    # Create configuration
     if [ "$SUDO_USER" ]; then
-        CONFIG_DIR="$USER_HOME/.config/brightness-control"
+        CONFIG_DIR="$USER_HOME/.config/dynavlight"
         sudo -u "$SUDO_USER" mkdir -p "$CONFIG_DIR"
-        if [ ! -f "$CONFIG_DIR/current_brightness" ]; then
-            echo "0.8" | sudo -u "$SUDO_USER" tee "$CONFIG_DIR/current_brightness" > /dev/null
+        if [ ! -f "$CONFIG_DIR/current_level" ]; then
+            echo "0.8" | sudo -u "$SUDO_USER" tee "$CONFIG_DIR/current_level" > /dev/null
         fi
     else
-        CONFIG_DIR="$HOME/.config/brightness-control"
+        CONFIG_DIR="$HOME/.config/dynavlight"
         mkdir -p "$CONFIG_DIR"
-        if [ ! -f "$CONFIG_DIR/current_brightness" ]; then
-            echo "0.8" > "$CONFIG_DIR/current_brightness"
+        if [ ! -f "$CONFIG_DIR/current_level" ]; then
+            echo "0.8" > "$CONFIG_DIR/current_level"
         fi
     fi
     
-    print_info "Configuration créée ✓"
+    print_info "Configuration created ✓"
 }
 
-# Activer l'extension
-enable_extension() {
-    print_info "Activation de l'extension..."
+# Enable the extension
+enable_dynavlight() {
+    print_info "Enabling Dynavlight..."
     
     if [ "$SUDO_USER" ]; then
-        sudo -u "$SUDO_USER" gnome-extensions enable software-brightness@custom-extension 2>/dev/null || true
+        sudo -u "$SUDO_USER" gnome-extensions enable dynavlight@custom-extension 2>/dev/null || true
     else
-        gnome-extensions enable software-brightness@custom-extension 2>/dev/null || true
+        gnome-extensions enable dynavlight@custom-extension 2>/dev/null || true
     fi
-    
-    print_info "Extension activée ✓"
+
+    print_info "Dynavlight enabled ✓"
 }
 
-# Instructions finales
+# Install the dynavlight command
+install_command() {
+    print_info "Installing 'dynavlight' command..."
+    
+    if [ -f "dynavlight" ]; then
+        sudo cp dynavlight /usr/local/bin/dynavlight
+        sudo chmod +x /usr/local/bin/dynavlight
+        print_info "'dynavlight' command installed ✓"
+    else
+        print_warning "'dynavlight' file not found, command not installed"
+    fi
+}
+
+# Final instructions
 show_completion() {
     echo ""
     echo -e "${GREEN}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
     echo "║                                                               ║"
-    echo "║           Installation terminée avec succès! ✓                ║"
+    echo "║              ✨ Installation successful! ✨                   ║"
     echo "║                                                               ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
     echo ""
-    print_info "Pour activer l'extension, vous DEVEZ:"
+    print_info "To enable Dynavlight, you MUST:"
     echo ""
-    echo "  1. Redémarrer GNOME Shell:"
-    echo "     - Appuyez sur Alt+F2"
-    echo "     - Tapez: r"
-    echo "     - Appuyez sur Entrée"
+    echo "  ${YELLOW}Restart GNOME Shell:${NC}"
+    echo "  ${BLUE}┌─────────────────────────────────────────┐${NC}"
+    echo "  ${BLUE}│${NC} killall -3 gnome-shell               ${BLUE}│${NC}"
+    echo "  ${BLUE}│${NC} OR                                   ${BLUE}│${NC}"
+    echo "  ${BLUE}│${NC} gnome-shell --replace & disown       ${BLUE}│${NC}"
+    echo "  ${BLUE}└─────────────────────────────────────────┘${NC}"
     echo ""
-    echo "  OU déconnectez-vous et reconnectez-vous"
+    print_info "After restarting, the ☀️ Dynavlight icon will appear in the top right"
     echo ""
-    print_info "Après redémarrage, l'icône ☀️ apparaîtra en haut à droite"
-    print_info "Cliquez dessus pour voir le curseur de luminosité"
+    print_info "Dynavlight commands:"
+    echo "  dynavlight enable    - Enable"
+    echo "  dynavlight disable   - Disable"
+    echo "  dynavlight status    - View status"
     echo ""
-    print_warning "Si l'icône n'apparaît pas, vérifiez les logs:"
-    echo "  journalctl -f /usr/bin/gnome-shell | grep -i brightness"
+    print_warning "Note: On VM, xrandr may not work"
+    print_warning "The icon will appear but the cursor may not have an effect"
     echo ""
 }
 
@@ -164,8 +183,9 @@ main() {
     print_header
     check_dependencies
     detect_gnome
-    install_extension
-    enable_extension
+    install_dynavlight
+    enable_dynavlight
+    install_command
     show_completion
 }
 
